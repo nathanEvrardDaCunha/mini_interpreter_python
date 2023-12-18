@@ -99,9 +99,20 @@ def evalInst(t):
         evalInst(t[2])
     
 def evalExpr(t):
-    print('evalExpr', t)
+    print('eval de ', t)
+    if type(t) == int: return t
+    if type(t) == str: return names[t]
+    if type(t) == tuple:
+        if t[0] == '+': return evalExpr(t[1]) + evalExpr(t[2])
+        if t[0] == '-': return evalExpr(t[1]) - evalExpr(t[2])
+        if t[0] == '*': return evalExpr(t[1]) * evalExpr(t[2])
+        if t[0] == '/': return evalExpr(t[1]) // evalExpr(t[2])
+        if t[0] == '%': return evalExpr(t[1]) % evalExpr(t[2])
+        if t[0] == '++': return evalExpr(t[1]) + 1
+        if t[0] == '--': return evalExpr(t[1]) - 1
+        if t[0] == '==': return evalExpr(t[1]) == evalExpr(t[2])
 
-    return "TODO"
+print()
 
 def p_line(t):
     '''linst : linst inst 
