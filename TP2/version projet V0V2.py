@@ -9,8 +9,11 @@ reserved = {
    'while' : 'WHILE',
    'for' :'FOR',
    'then' : 'THEN',
-   'print' : 'PRINT',
-   'printString' : 'PRINTSTRING'
+   'print': 'PRINT',
+   'float': 'FLOAT',
+   'int': 'INT',
+   'bool': 'BOOL',
+   'printString' : 'PRINTSTRING',
    }
 
 tokens = [
@@ -266,7 +269,7 @@ parser = yacc.yacc()
 s='printString("Zda6+5z t");'
 #s='bool x = true;'
 
-#s=('zharks(x;y;z;){''print(1);''}')
+#s='zharks(x;y;z;){print(1);}'
 #with open("1.in") as file: # Use file to refer to the file object
 
    #s = file.read()
