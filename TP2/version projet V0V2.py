@@ -9,17 +9,20 @@ reserved = {
    'while' : 'WHILE',
    'for' :'FOR',
    'then' : 'THEN',
-   'print' : 'PRINT'
+   'print' : 'PRINT',
+   'printString' : 'PRINTSTRING'
    }
 
 tokens = [
-    'NAME','NUMBER',
+    'NAME','NUMBER','STRING',
     'PLUS','MINUS','TIMES','DIVIDE', 
     'LPAREN','RPAREN', 'COLON', 'AND', 'OR', 'EQUAL', 'EQUALS', 'LOWER','HIGHER',
-    'LBRACKET','RBRACKET'
+    'LBRACKET','RBRACKET','DOUBLEQUOTE'
     ]+list(reserved.values())
 
 # Tokens
+
+
 def t_NAME(t):
     r'[a-zA-Z_][a-zA-Z_0-9]*'
     t.type = reserved.get(t.value,'NAME')    # Check for reserved words
@@ -30,6 +33,7 @@ t_MINUS   = r'-'
 t_TIMES   = r'\*'
 t_DIVIDE  = r'/'
 t_EQUAL  = r'='
+t_DOUBLEQUOTE  = r'\"'
 t_LPAREN  = r'\('
 t_RPAREN  = r'\)'
 t_LBRACKET  = r'\{'
@@ -41,6 +45,10 @@ t_EQUALS  = r'=='
 t_LOWER  = r'\<'
 t_HIGHER  = r'\>'
 
+def t_STRING(t):
+    r'\"[#-~]+(\s*[#-~]*)*\"'
+    t.type = reserved.get(t.value,'STRING')    # Check for reserved words
+    return t
 def t_NUMBER(t):
     r'\d+'
     try:
@@ -79,15 +87,17 @@ def p_start(t):
     #eval(t[1])
     evalInst(t[1])
 names={}
+strings={}
 
 def evalInst(t):
     print('evalInst', t)
     if type(t)!=tuple : 
         print('warning')
         return
-    if t[0]=='print' :
+    if t[0]=='print':
         print('CALC>', evalExpr(t[1]))
     if t[0] == 'if':
+
         print('CALC>', evalExpr(t[1]))
     if t[0] == 'while':
 
@@ -102,6 +112,7 @@ def evalExpr(t):
     print('eval de ', t)
     if type(t) == int: return t
     if type(t) == str: return names[t]
+    if type(t) == str: return strings[t]
     if type(t) == tuple:
         if t[0] == '+': return evalExpr(t[1]) + evalExpr(t[2])
         if t[0] == '-': return evalExpr(t[1]) - evalExpr(t[2])
@@ -125,19 +136,35 @@ def p_line(t):
     
 
 def p_statement_assign(t):
-    '''inst : NAME EQUAL expression COLON
-            | NAME PLUS PLUS COLON'''
-    if (t[2] == '+'):
-        
-        t[0] = ('assign', t[1], (t[1]+' + 1'))
+    '''inst : NAME EQUAL expression COLON'''
+
     t[0] = ('assign',t[1], t[3])
 
 
+def p_statement_upgrade(t):
+    '''inst : NAME EQUAL expression
+            | NAME PLUS PLUS
+            | NAME PLUS EQUAL NUMBER
+            | NAME MINUS EQUAL NUMBER'''
+    if (t[3] == '+'):
+        t[0] = ('assign', t[1], ('+',t[1],'1'))
+    elif (t[3] == '='):
+        t[0] = ('assign', t[1], (t[2],t[1],t[4]))
+    else:
+        t[0] = ('assign', t[1], t[3])
 def p_statement_print(t):
     'inst : PRINT LPAREN expression RPAREN COLON'
     t[0] = ('print',t[3])
-
-
+def p_statement_names(t):
+    '''NAMES : NAMES NAME
+                | NAME '''
+    if len(t)== 3 :
+        t[0] = ('bloc',t[1], t[2])
+    else:
+        t[0] = ('bloc',t[1], 'empty')
+def p_statement_print_string(t):
+    'inst : PRINTSTRING LPAREN STRING RPAREN COLON'
+    t[0] = ('printString',t[3])
 def p_statement_if(t):
     'inst : IF LPAREN expression RPAREN LBRACKET linst RBRACKET'
     t[0] = ('if', t[3], t[6])
@@ -194,10 +221,11 @@ def p_error(t):
 import ply.yacc as yacc
 parser = yacc.yacc()
 
-#s='1+2;x=4 if ;x=x+1;'
+#s='1+2;x=4;x=x+1;'
 #s='print(1+2);x=4;x=x+1;'
 #s='do{ print(1+2);x=x+1;}while(2==1)'
-s='for(i=0;i>2;i++;){x=4;}'
+#s='for(i=0;i>2;i+=5){x=4;}'
+s='printString("Zda6+5z t");'
 #with open("1.in") as file: # Use file to refer to the file object
 
    #s = file.read()
