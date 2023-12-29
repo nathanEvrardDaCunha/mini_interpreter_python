@@ -86,16 +86,13 @@ def p_start(t):
     t[0] = ('start', t[1])
     print(t[0])
     printTreeGraph(t[0])
-    evalInst(t[1], {})
+    evalInst(t[1])
 
 names = {}
 strings = {}
 functions = {}
 
-def evalInst(t, local_vars=None):
-    if local_vars is None:
-        local_vars = {}
-
+def evalInst(t):
     print('evalInst', t)
     if type(t) != tuple:
         print('warning')
@@ -103,9 +100,7 @@ def evalInst(t, local_vars=None):
 
     if t[0] == 'print':
         if isinstance(t[1], tuple):
-            print('CALC>', evalExpr(t[1], local_vars))
-        elif t[1] in local_vars:
-            print('CALC>', local_vars[t[1]])
+            print('CALC>', evalExpr(t[1]))
         elif t[1] in names:
             print('CALC>', names[t[1]])
         else:
@@ -118,12 +113,12 @@ def evalInst(t, local_vars=None):
         print('CALC>', evalExpr(t[1]))
     elif t[0] == 'assign':
         variable_name = t[1]
-        expression_result = evalExpr(t[2], local_vars)
-        local_vars[variable_name] = expression_result
+        expression_result = evalExpr(t[2])
+        names[variable_name] = expression_result
         print(f'Assign {variable_name} = {expression_result}')
     elif t[0] == 'bloc':
-        evalInst(t[1], local_vars.copy())
-        evalInst(t[2], local_vars.copy())
+        evalInst(t[1])
+        evalInst(t[2])
     elif t[0] == 'def_function':
         function_name = t[1]
         params = t[2]
@@ -137,21 +132,18 @@ def evalInst(t, local_vars=None):
             function_def = functions[function_name]
             if len(args) == len(function_def['params']):
                 local_names = dict(zip(function_def['params'], args))
-                local_vars.update(local_names)
-                evalInst(('bloc',) + (function_def['body'], 'empty'), local_vars.copy())
+                names.update(local_names)
+                evalInst(('bloc',) + (function_def['body'], 'empty'))
             else:
                 print(f"Erreur: Nombre incorrect d'arguments pour la fonction {function_name}")
         else:
             print(f"Erreur: La fonction {function_name} n'est pas définie.")
 
-def evalExpr(t, local_vars=None):
-    if local_vars is None:
-        local_vars = {}
-
+def evalExpr(t):
     print('eval de ', t)
-    if t in local_vars:
-        return local_vars[t]
-    elif t in names:
+    if t in functions:
+        return functions[t]
+    if t in names:
         return names[t]
     elif type(t) == int:
         return t
@@ -163,22 +155,21 @@ def evalExpr(t, local_vars=None):
         return t
     elif type(t) == tuple:
         if t[0] == '+':
-            return evalExpr(t[1], local_vars) + evalExpr(t[2], local_vars)
+            return evalExpr(t[1]) + evalExpr(t[2])
         elif t[0] == '-':
-            return evalExpr(t[1], local_vars) - evalExpr(t[2], local_vars)
+            return evalExpr(t[1]) - evalExpr(t[2])
         elif t[0] == '*':
-            return evalExpr(t[1], local_vars) * evalExpr(t[2], local_vars)
+            return evalExpr(t[1]) * evalExpr(t[2])
         elif t[0] == '/':
-            return evalExpr(t[1], local_vars) // evalExpr(t[2], local_vars)
+            return evalExpr(t[1]) // evalExpr(t[2])
         elif t[0] == '%':
-            return evalExpr(t[1], local_vars) % evalExpr(t[2], local_vars)
+            return evalExpr(t[1]) % evalExpr(t[2])
         elif t[0] == '++':
-            return evalExpr(t[1], local_vars) + 1
+            return evalExpr(t[1]) + 1
         elif t[0] == '--':
-            return evalExpr(t[1], local_vars) - 1
+            return evalExpr(t[1]) - 1
         elif t[0] == '==':
-            return evalExpr(t[1], local_vars) == evalExpr(t[2], local_vars)
-
+            return evalExpr(t[1]) == evalExpr(t[2])
 
 print()
 
@@ -352,6 +343,9 @@ void test(x, y, z) {
     int h = 1000000000;
     h = 7;
     print(h);
+    
+    int result = x;
+    print(result);
 }
 
 test(1, 2, 3);
