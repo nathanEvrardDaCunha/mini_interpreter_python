@@ -102,10 +102,14 @@ def evalInst(t, local_vars=None):
         return
 
     if t[0] == 'print':
-        if t[1] in names:
+        if isinstance(t[1], tuple):
+            print('CALC>', evalExpr(t[1], local_vars))
+        elif t[1] in local_vars:
+            print('CALC>', local_vars[t[1]])
+        elif t[1] in names:
             print('CALC>', names[t[1]])
         else:
-            print('CALC>', evalExpr(t[1]))
+            print('CALC>', t[1])
     elif t[0] == 'printString':
         print('CALC>', strings[t[2]])
     elif t[0] == 'if':
@@ -113,15 +117,18 @@ def evalInst(t, local_vars=None):
     elif t[0] == 'while':
         print('CALC>', evalExpr(t[1]))
     elif t[0] == 'assign':
-        local_vars[t[1]] = evalExpr(t[2])
+        variable_name = t[1]
+        expression_result = evalExpr(t[2], local_vars)
+        local_vars[variable_name] = expression_result
+        print(f'Assign {variable_name} = {expression_result}')
     elif t[0] == 'bloc':
         evalInst(t[1], local_vars.copy())
         evalInst(t[2], local_vars.copy())
     elif t[0] == 'def_function':
-        function_name = t[2]
-        params = t[3]
-        body = t[4]
-        return_type = t[5]
+        function_name = t[1]
+        params = t[2]
+        body = t[3]
+        return_type = t[4]
         functions[function_name] = {'params': params, 'body': body, 'return_type': return_type}
     elif t[0] == 'function_call':
         function_name = t[1]
@@ -137,22 +144,41 @@ def evalInst(t, local_vars=None):
         else:
             print(f"Erreur: La fonction {function_name} n'est pas définie.")
 
-def evalExpr(t):
+def evalExpr(t, local_vars=None):
+    if local_vars is None:
+        local_vars = {}
+
     print('eval de ', t)
-    if t in names : return names[t]
-    if type(t) == int: return t
-    if type(t) == str: return t
-    if type(t) == bool : return t
-    if type(t) == float : return t
-    if type(t) == tuple:
-        if t[0] == '+': return evalExpr(t[1]) + evalExpr(t[2])
-        if t[0] == '-': return evalExpr(t[1]) - evalExpr(t[2])
-        if t[0] == '*': return evalExpr(t[1]) * evalExpr(t[2])
-        if t[0] == '/': return evalExpr(t[1]) // evalExpr(t[2])
-        if t[0] == '%': return evalExpr(t[1]) % evalExpr(t[2])
-        if t[0] == '++': return evalExpr(t[1]) + 1
-        if t[0] == '--': return evalExpr(t[1]) - 1
-        if t[0] == '==': return evalExpr(t[1]) == evalExpr(t[2])
+    if t in local_vars:
+        return local_vars[t]
+    elif t in names:
+        return names[t]
+    elif type(t) == int:
+        return t
+    elif type(t) == str:
+        return t
+    elif type(t) == bool:
+        return t
+    elif type(t) == float:
+        return t
+    elif type(t) == tuple:
+        if t[0] == '+':
+            return evalExpr(t[1], local_vars) + evalExpr(t[2], local_vars)
+        elif t[0] == '-':
+            return evalExpr(t[1], local_vars) - evalExpr(t[2], local_vars)
+        elif t[0] == '*':
+            return evalExpr(t[1], local_vars) * evalExpr(t[2], local_vars)
+        elif t[0] == '/':
+            return evalExpr(t[1], local_vars) // evalExpr(t[2], local_vars)
+        elif t[0] == '%':
+            return evalExpr(t[1], local_vars) % evalExpr(t[2], local_vars)
+        elif t[0] == '++':
+            return evalExpr(t[1], local_vars) + 1
+        elif t[0] == '--':
+            return evalExpr(t[1], local_vars) - 1
+        elif t[0] == '==':
+            return evalExpr(t[1], local_vars) == evalExpr(t[2], local_vars)
+
 
 print()
 
@@ -314,12 +340,25 @@ parser = yacc.yacc()
 #s='printString("Zda6+5z t");'
 #s='bool x = true;'
 
+### CORRIGER LE FAIT QUE LE ASSIGN OU PRINT N'AFFICHE PAS LA VALEUR MISE A JOUR D'UNE VARIABLE
 s = '''
 void test(x, y, z) {
-    print(1);
+    print(x + 100 + z);
+    print(y);
+    print(17 - 2);
+    
+    print(separationnnnnnnnnnnnnn);
+    
+    int h = 1000000000;
+    h = 7;
+    print(h);
 }
 
 test(1, 2, 3);
+
+int h = 500;
+h = 2;
+print(h);
 '''
 #with open("1.in") as file: # Use file to refer to the file object
 
