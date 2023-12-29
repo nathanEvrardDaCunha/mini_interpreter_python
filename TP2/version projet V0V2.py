@@ -106,7 +106,7 @@ def evalInst(t):
         else:
             print('CALC>', t[1])
     elif t[0] == 'printString':
-        print('CALC>', strings[t[2]])
+        print('CALC>', t[1])
     elif t[0] == 'if':
         print('CALC>', evalExpr(t[1]))
     elif t[0] == 'while':
@@ -334,25 +334,24 @@ parser = yacc.yacc()
 ### CORRIGER LE FAIT QUE LE ASSIGN OU PRINT N'AFFICHE PAS LA VALEUR MISE A JOUR D'UNE VARIABLE
 s = '''
 void test(x, y, z) {
-    print(x + 100 + z);
-    print(y);
-    print(17 - 2);
-    
-    print(separationnnnnnnnnnnnnn);
-    
-    int h = 1000000000;
-    h = 7;
-    print(h);
-    
-    int result = x;
-    print(result);
+    print(x);
+}
+
+void test2(){
+    print(5000000000000000000000000000);
+    printString("gay");
 }
 
 test(1, 2, 3);
+test(2, 2, 3);
+test(3, 2, 3);
+test(4, 2, 3);
+test(5, 2, 3);
 
-int h = 500;
-h = 2;
-print(h);
+test2();
+printString("tototata");
+
+
 '''
 #with open("1.in") as file: # Use file to refer to the file object
 
