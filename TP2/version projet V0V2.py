@@ -1,27 +1,25 @@
 from genereTreeGraphviz2 import printTreeGraph
 
-
- 
-              
 reserved = {
-   'if' : 'IF',
-   'do' : 'DO',
-   'while' : 'WHILE',
-   'for' :'FOR',
-   'then' : 'THEN',
+   'if': 'IF',
+   'do': 'DO',
+   'while': 'WHILE',
+   'for': 'FOR',
+   'then': 'THEN',
    'print': 'PRINT',
    'float': 'FLOAT',
    'int': 'INT',
    'bool': 'BOOL',
-   'printString' : 'PRINTSTRING',
-   }
+   'void': 'VOID',
+   'printString': 'PRINTSTRING',
+}
 
 tokens = [
-    'NAME','NUMBER','STRING',
-    'PLUS','MINUS','TIMES','DIVIDE', 
-    'LPAREN','RPAREN', 'COLON', 'AND', 'OR', 'EQUAL', 'EQUALS', 'LOWER','HIGHER',
-    'LBRACKET','RBRACKET','DOUBLEQUOTE'
-    ]+list(reserved.values())
+    'NAME', 'NUMBER', 'STRING',
+    'PLUS', 'MINUS', 'TIMES', 'DIVIDE',
+    'LPAREN', 'RPAREN', 'COLON', 'AND', 'OR', 'EQUAL', 'EQUALS', 'LOWER', 'HIGHER',
+    'LBRACKET', 'RBRACKET', 'DOUBLEQUOTE', 'COMMA'
+] + list(reserved.values())
 
 # Tokens
 
@@ -47,6 +45,7 @@ t_OR  = r'\|'
 t_EQUALS  = r'=='
 t_LOWER  = r'\<'
 t_HIGHER  = r'\>'
+t_COMMA = r','
 
 def t_STRING(t):
     r'\"[#-~]+(\s*[#-~]*)*\"'
@@ -67,11 +66,11 @@ t_ignore = " \t"
 def t_newline(t):
     r'\n+'
     t.lexer.lineno += t.value.count("\n")
-    
+
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
-    
+
 # Build the lexer
 import ply.lex as lex
 lexer = lex.lex()
@@ -80,42 +79,64 @@ lexer = lex.lex()
 # Parsing rules
 
 
- 
+
 
 def p_start(t):
-    ''' start : linst'''
-    t[0] = ('start',t[1])
+    '''start : linst'''
+    t[0] = ('start', t[1])
     print(t[0])
     printTreeGraph(t[0])
-    #eval(t[1])
-    evalInst(t[1])
-names={}
-strings={}
+    evalInst(t[1], {})
 
-def evalInst(t):
+names = {}
+strings = {}
+functions = {}
+
+def evalInst(t, local_vars=None):
+    if local_vars is None:
+        local_vars = {}
+
     print('evalInst', t)
-    if type(t)!=tuple : 
+    if type(t) != tuple:
         print('warning')
         return
-    if t[0]=='print' :
+
+    if t[0] == 'print':
         if t[1] in names:
             print('CALC>', names[t[1]])
         else:
             print('CALC>', evalExpr(t[1]))
-    if t[0] == 'if':
-
+    elif t[0] == 'printString':
+        print('CALC>', strings[t[2]])
+    elif t[0] == 'if':
         print('CALC>', evalExpr(t[1]))
-    if t[0] == 'while':
-
+    elif t[0] == 'while':
         print('CALC>', evalExpr(t[1]))
-    if t[0] == 'def_function':
-        print('CALC>', evalExpr(t[1])) #FAIRE le StOCKAGE DU NOM, DES ARGS, ET DU BODY
-    if t[0]=='assign' :
-        names[t[1]]=evalExpr(t[2])
-    if t[0]=='bloc' : 
-        evalInst(t[1])
-        evalInst(t[2])
-    
+    elif t[0] == 'assign':
+        local_vars[t[1]] = evalExpr(t[2])
+    elif t[0] == 'bloc':
+        evalInst(t[1], local_vars.copy())
+        evalInst(t[2], local_vars.copy())
+    elif t[0] == 'def_function':
+        function_name = t[2]
+        params = t[3]
+        body = t[4]
+        return_type = t[5]
+        functions[function_name] = {'params': params, 'body': body, 'return_type': return_type}
+    elif t[0] == 'function_call':
+        function_name = t[1]
+        args = t[2]
+        if function_name in functions:
+            function_def = functions[function_name]
+            if len(args) == len(function_def['params']):
+                local_names = dict(zip(function_def['params'], args))
+                local_vars.update(local_names)
+                evalInst(('bloc',) + (function_def['body'], 'empty'), local_vars.copy())
+            else:
+                print(f"Erreur: Nombre incorrect d'arguments pour la fonction {function_name}")
+        else:
+            print(f"Erreur: La fonction {function_name} n'est pas définie.")
+
 def evalExpr(t):
     print('eval de ', t)
     if t in names : return names[t]
@@ -136,12 +157,12 @@ def evalExpr(t):
 print()
 
 def p_line(t):
-    '''linst : linst inst 
+    '''linst : linst inst
             | inst '''
-    if len(t)== 3 :
-        t[0] = ('bloc',t[1], t[2])
+    if len(t) == 3:
+        t[0] = ('bloc', t[1], t[2])
     else:
-        t[0] = ('bloc',t[1], 'empty')
+        t[0] = ('bloc', t[1], 'empty')
 
 #IL FAUT IMPLEMENTER lES CONDITIONS POUR AVOIR UN BOOL QUI FONCTIONNE
 def p_statement_assign(t):
@@ -213,13 +234,48 @@ def p_expression_compare(t):
     t[0] = (t[2], t[1], t[3])
 
 def p_statement_def_function(t):
-    '''inst :
-                | NAME LPAREN RPAREN LBRACKET linst RBRACKET
-                | NAME LPAREN params RPAREN LBRACKET linst RBRACKET'''
-    if len(t) == 7:
-        t[0] = ('def_function', t[1], t[5])
+    '''inst : VOID NAME LPAREN RPAREN LBRACKET linst RBRACKET
+            | INT NAME LPAREN RPAREN LBRACKET linst RBRACKET
+            | FLOAT NAME LPAREN RPAREN LBRACKET linst RBRACKET
+            | BOOL NAME LPAREN RPAREN LBRACKET linst RBRACKET
+            | STRING NAME LPAREN RPAREN LBRACKET linst RBRACKET
+            | VOID NAME LPAREN params RPAREN LBRACKET linst RBRACKET
+            | INT NAME LPAREN params RPAREN LBRACKET linst RBRACKET
+            | FLOAT NAME LPAREN params RPAREN LBRACKET linst RBRACKET
+            | BOOL NAME LPAREN params RPAREN LBRACKET linst RBRACKET
+            | STRING NAME LPAREN params RPAREN LBRACKET linst RBRACKET'''
     if len(t) == 8:
-        t[0] = ('def_function', t[1], t[3], t[6])
+        t[0] = ('def_function', t[2], [], t[6], t[1])
+    elif len(t) == 9:
+        t[0] = ('def_function', t[2], t[4], t[7], t[1])
+
+
+def p_params(t):
+    '''params :
+                | NAME COMMA params
+                | NAME'''
+    if len(t) == 2:
+        t[0] = [t[1]]
+    elif len(t) == 4:
+        t[0] = [t[1]] + t[3]
+    else:
+        t[0] = []
+
+def p_statement_function_call_args(t):
+    'inst : NAME LPAREN args RPAREN COLON'
+    t[0] = ('function_call', t[1], t[3])
+
+
+def p_args(t):
+    '''args :
+            | expression
+            | expression COMMA args'''
+    if len(t) == 2:
+        t[0] = [t[1]]
+    elif len(t) == 4:
+        t[0] = [t[1]] + t[3]
+    else:
+        t[0] = []
 
 def p_expression_binop(t):
     '''expression : expression PLUS expression
@@ -232,29 +288,18 @@ def p_expression_binop(t):
                   | expression HIGHER expression
                   | expression DIVIDE expression'''
     t[0] = (t[2],t[1], t[3])
- 
+
 def p_expression_group(t):
     'expression : LPAREN expression RPAREN'
     t[0] = t[2]
 
 def p_expression_number(t):
     'expression : NUMBER'
-    
     t[0] = t[1]
 
 def p_expression_name(t):
     'expression : NAME'
-   
     t[0] = t[1]
-
-def p_params(t):
-    '''params :
-                | NAME COLON params
-                | NAME'''
-    if len(t) == 3:
-        t[0] = t[1]
-    if len(t) == 4:
-        t[0] = (t[1], t[3])
 
 def p_error(t):
     print("Syntax error at '%s'" % t.value)
@@ -266,13 +311,19 @@ parser = yacc.yacc()
 #s='print(1+2);x=4;x=x+1;'
 #s='do{ print(1+2);x=x+1;}while(2==1)'
 #s='for(i=0;i>2;i+=5){x=4;}'
-s='printString("Zda6+5z t");'
+#s='printString("Zda6+5z t");'
 #s='bool x = true;'
 
-#s='zharks(x;y;z;){print(1);}'
+s = '''
+void test(x, y, z) {
+    print(1);
+}
+
+test(1, 2, 3);
+'''
 #with open("1.in") as file: # Use file to refer to the file object
 
    #s = file.read()
-   
+
 parser.parse(s)
 
