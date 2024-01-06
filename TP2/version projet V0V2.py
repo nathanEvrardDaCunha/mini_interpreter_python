@@ -13,6 +13,7 @@ reserved = {
    'string' : 'STRING',
    'printString' : 'PRINTSTRING',
     'void': 'VOID',
+    'return': 'RETURN',
    }
 
 tokens = [
@@ -141,7 +142,8 @@ def evalInst(t):
         params = t[2]
         body = t[3]
         return_type = t[4]
-        functions[function_name] = {'params': params, 'body': body, 'return_type': return_type}
+        return_value = t[5] if len(t) == 6 else None
+        functions[function_name] = {'params': params, 'body': body, 'return_type': return_type, 'return_value': return_value}
     if t[0] == 'function_call':
         function_name = t[1]
         args = t[2]
@@ -257,19 +259,23 @@ def p_expression_compare(t):
 
 def p_statement_def_function(t):
     '''inst : VOID NAME LPAREN RPAREN LBRACKET linst RBRACKET
-            | INT NAME LPAREN RPAREN LBRACKET linst RBRACKET
-            | FLOAT NAME LPAREN RPAREN LBRACKET linst RBRACKET
-            | BOOL NAME LPAREN RPAREN LBRACKET linst RBRACKET
-            | STRING NAME LPAREN RPAREN LBRACKET linst RBRACKET
+            | INT NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
+            | FLOAT NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
+            | BOOL NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
+            | STRING NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
             | VOID NAME LPAREN params RPAREN LBRACKET linst RBRACKET
-            | INT NAME LPAREN params RPAREN LBRACKET linst RBRACKET
-            | FLOAT NAME LPAREN params RPAREN LBRACKET linst RBRACKET
-            | BOOL NAME LPAREN params RPAREN LBRACKET linst RBRACKET
-            | STRING NAME LPAREN params RPAREN LBRACKET linst RBRACKET'''
+            | INT NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET
+            | FLOAT NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET
+            | BOOL NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET
+            | STRING NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET'''
     if len(t) == 8:
         t[0] = ('def_function', t[2], [], t[6], t[1])
     elif len(t) == 9:
         t[0] = ('def_function', t[2], t[4], t[7], t[1])
+    elif len(t) == 11:
+        t[0] = ('def_function', t[2], [], t[6], t[1], t[8])
+    elif len(t) == 12:
+        t[0] = ('def_function', t[2], t[4], t[7], t[1], t[9])
 
 
 def p_params(t):
@@ -346,16 +352,15 @@ parser = yacc.yacc()
 #s='int i=0;i++ print(i>2);'
 #s='int i=6;i-=4 print(i);'
 #s='void zharks(x;y;z;){print(1);}'
+
 s='''
-void test(x) {
-if(x>2){
-    x++
-    print(x>2);
-    }
+int test_function(x) {
+    x = 2;
+    print(x);
+    return x;
 }
 
-test(3);
-
+test_function(4);
 '''
 
 #with open("1.in") as file: # Use file to refer to the file object
