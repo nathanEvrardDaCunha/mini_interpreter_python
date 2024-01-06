@@ -153,10 +153,16 @@ def evalInst(t):
                 local_names = dict(zip(function_def['params'], args))
                 names.update(local_names)
                 evalInst(('bloc',) + (function_def['body'], 'empty'))
+                print('CALC>', evalExpr(function_def['return_value']))
             else:
                 print(f"Erreur: Nombre incorrect d'arguments pour la fonction {function_name}")
         else:
             print(f"Erreur: La fonction {function_name} n'est pas définie.")
+    if t[0] == 'assign_function':
+        variable_name = t[1]
+        variable_body = t[2]
+        names[variable_name] = evalExpr(functions[variable_body[1]]['return_value'])
+
 
 def evalExpr(t):
     print('eval de ', t)
@@ -277,6 +283,11 @@ def p_statement_def_function(t):
     elif len(t) == 12:
         t[0] = ('def_function', t[2], t[4], t[7], t[1], t[9])
 
+def p_statement_assign_function(t):
+    '''inst : INT NAME EQUAL inst'''
+
+    print("LETS GO BABY")
+    t[0] = ('assign_function', t[2], t[4])
 
 def p_params(t):
     '''params :   NAME COLON params
@@ -353,14 +364,16 @@ parser = yacc.yacc()
 #s='int i=6;i-=4 print(i);'
 #s='void zharks(x;y;z;){print(1);}'
 
+#Si la fonction est une bool cela fonctionne aussi => A corriger
 s='''
 int test_function(x) {
-    x = 2;
-    print(x);
+    x = 20;
+    x = x + 100;
     return x;
 }
 
-test_function(4);
+int result = test_function(1);
+print(result);
 '''
 
 #with open("1.in") as file: # Use file to refer to the file object
