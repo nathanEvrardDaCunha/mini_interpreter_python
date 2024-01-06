@@ -273,8 +273,7 @@ def p_statement_def_function(t):
 
 
 def p_params(t):
-    '''params :
-                | NAME COLON params
+    '''params :   NAME COLON params
                 | NAME'''
     if len(t) == 2:
         t[0] = [t[1]]
@@ -327,14 +326,7 @@ def p_expression_text(t):
     'expression : TEXT'
 
     t[0] = t[1]
-def p_params(t):
-    '''params :
-                | NAME COLON params
-                | NAME'''
-    if len(t) == 3:
-        t[0] = t[1]
-    if len(t) == 4:
-        t[0] = (t[1], t[3])
+
 
 def p_error(t):
     print("Syntax error at '%s'" % t.value)
