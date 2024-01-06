@@ -113,8 +113,8 @@ def evalInst(t):
     if t[0] == 'printString':
         print('CALC>', t[1])
     if t[0] == 'if':
-
-        evalInst(t[2])
+        if(evalExpr(t[1])):
+            evalInst(t[2])
     if t[0] == 'while':
         while(evalExpr(t[1])):
             evalInst(t[2])
@@ -348,11 +348,13 @@ parser = yacc.yacc()
 #s='void zharks(x;y;z;){print(1);}'
 s='''
 void test(x) {
+if(x>2){
     x++
-    print(x);
+    print(x>2);
+    }
 }
 
-test(1);
+test(3);
 
 '''
 
