@@ -13,26 +13,32 @@ reserved = {
    'float': 'FLOAT',
    'int': 'INT',
    'bool': 'BOOL',
+   'string' : 'STRING',
    'printString' : 'PRINTSTRING',
    }
 
 tokens = [
-    'NAME','NUMBER','STRING',
-    'PLUS','MINUS','TIMES','DIVIDE', 
+    'NAME','NUMBER','TEXT',
+    'PLUS','MINUS','TIMES','DIVIDE', 'PLUSPLUS','MINUSMINUS','BOOLEAN',
     'LPAREN','RPAREN', 'COLON', 'AND', 'OR', 'EQUAL', 'EQUALS', 'LOWER','HIGHER',
     'LBRACKET','RBRACKET','DOUBLEQUOTE'
     ]+list(reserved.values())
 
 # Tokens
 
-
+def t_BOOLEAN(t):
+    r'true|false'
+    t.type = reserved.get(t.value,'BOOLEAN')    # Check for reserved words
+    return t
 def t_NAME(t):
     r'[a-zA-Z_][a-zA-Z_0-9]*'
     t.type = reserved.get(t.value,'NAME')    # Check for reserved words
     return t
 
 t_PLUS    = r'\+'
+t_PLUSPLUS    = r'\+\+'
 t_MINUS   = r'-'
+t_MINUSMINUS   = r'--'
 t_TIMES   = r'\*'
 t_DIVIDE  = r'/'
 t_EQUAL  = r'='
@@ -48,10 +54,11 @@ t_EQUALS  = r'=='
 t_LOWER  = r'\<'
 t_HIGHER  = r'\>'
 
-def t_STRING(t):
+def t_TEXT(t):
     r'\"[#-~]+(\s*[#-~]*)*\"'
-    t.type = reserved.get(t.value,'STRING')    # Check for reserved words
+    t.type = reserved.get(t.value,'TEXT')    # Check for reserved words
     return t
+
 def t_NUMBER(t):
     r'\d+'
     try:
@@ -90,7 +97,6 @@ def p_start(t):
     #eval(t[1])
     evalInst(t[1])
 names={}
-strings={}
 
 def evalInst(t):
     print('evalInst', t)
@@ -104,15 +110,29 @@ def evalInst(t):
             print('CALC>', evalExpr(t[1]))
     if t[0] == 'if':
 
-        print('CALC>', evalExpr(t[1]))
+        evalInst(t[2])
     if t[0] == 'while':
+        while(evalExpr(t[1])):
+            evalInst(t[2])
+    if t[0] == 'do_while':
+        evalInst(t[1])
+        while(evalExpr(t[2])):
+            evalInst(t[1])
+    if t[0] == 'for':
+        evalInst(t[1])
 
-        print('CALC>', evalExpr(t[1]))
+        while (evalExpr(t[2])):
+            print(evalExpr(t[2]))
+            evalInst(t[4])
+            evalInst(t[3])
     if t[0] == 'def_function':
         print('CALC>', evalExpr(t[1])) #FAIRE le StOCKAGE DU NOM, DES ARGS, ET DU BODY
     if t[0]=='assign' :
         names[t[1]]=evalExpr(t[2])
-    if t[0]=='bloc' : 
+    if t[0]=='upgrade' :
+        names[t[1]]=evalExpr(t[2])
+    if t[0]=='bloc' :
+
         evalInst(t[1])
         evalInst(t[2])
     
@@ -132,6 +152,9 @@ def evalExpr(t):
         if t[0] == '++': return evalExpr(t[1]) + 1
         if t[0] == '--': return evalExpr(t[1]) - 1
         if t[0] == '==': return evalExpr(t[1]) == evalExpr(t[2])
+        if t[0] == '>': return evalExpr(t[1]) > evalExpr(t[2])
+        if t[0] == '<': return evalExpr(t[1]) < evalExpr(t[2])
+
 
 print()
 
@@ -146,10 +169,11 @@ def p_line(t):
 #IL FAUT IMPLEMENTER lES CONDITIONS POUR AVOIR UN BOOL QUI FONCTIONNE
 def p_statement_assign(t):
     '''inst : INT NAME EQUAL expression COLON
-            | STRING NAME EQUAL expression COLON
-            | BOOL NAME EQUAL expression COLON
+            | STRING NAME EQUAL TEXT COLON
+            | BOOL NAME EQUAL BOOLEAN COLON
             | FLOAT NAME EQUAL expression COLON
             | NAME EQUAL expression COLON'''
+
     if t[1] in ['int', 'float', 'string', 'bool']:
         if isinstance(evalExpr(t[4]), (int, float)) and (t[1] == 'int' or t[1] == 'float'):
             t[0] = ('assign', t[2], t[4])
@@ -158,24 +182,29 @@ def p_statement_assign(t):
         elif isinstance(evalExpr(t[4]), str) and t[1] == 'string':
             t[0] = ('assign', t[2], t[4])
             names[t[2]] = evalExpr(t[4])
-        elif isinstance(evalExpr(t[4]), bool) and t[1] == 'bool':
+        elif t[1] == 'bool':
+            print("test")
             t[0] = ('assign', t[2], t[4])
-            names[t[2]] = evalExpr(t[4])
+            names[t[2]] = bool(evalExpr(t[4]))
         else:
             print("Erreur : Type de variable incorrect (REFAIRE LERREUR POUR QUELLE RESSORTE MIEUX AVEC CALC COMME LE DEMANDE LE PROF")
     else:
         t[0] = ('assign', t[1], t[3])
         names[1] = evalExpr(t[3])
 def p_statement_upgrade(t):
-    '''inst : NAME PLUS PLUS
+    '''inst : NAME PLUSPLUS
+            | NAME MINUSMINUS
             | NAME PLUS EQUAL NUMBER
             | NAME MINUS EQUAL NUMBER'''
-    if (t[3] == '+'):
-        t[0] = ('assign', t[1], ('+',t[1],'1'))
+    if (t[2] == '++'):
+
+        names[t[1]] = evalExpr(t[2])
+        t[0] = ('assign', t[1], ('+', t[1], 1))
+
     elif (t[3] == '='):
         t[0] = ('assign', t[1], (t[2],t[1],t[4]))
-    else:
-        t[0] = ('assign', t[1], t[3])
+
+
 def p_statement_print(t):
     'inst : PRINT LPAREN expression RPAREN COLON'
     t[0] = ('print',t[3])
@@ -187,7 +216,7 @@ def p_statement_names(t):
     else:
         t[0] = ('bloc',t[1], 'empty')
 def p_statement_print_string(t):
-    'inst : PRINTSTRING LPAREN STRING RPAREN COLON'
+    'inst : PRINTSTRING LPAREN TEXT RPAREN COLON'
     t[0] = ('printString',t[3])
 def p_statement_if(t):
     'inst : IF LPAREN expression RPAREN LBRACKET linst RBRACKET'
@@ -204,7 +233,6 @@ def p_statement_do_while(t):
 def p_statement_for(t):
     'inst : FOR LPAREN inst compare COLON inst  RPAREN LBRACKET linst RBRACKET'
     t[0] = ('for', t[3], t[4], t[6],t[9])
-
 def p_expression_compare(t):
     '''compare :
                   | expression EQUALS expression
@@ -247,6 +275,10 @@ def p_expression_name(t):
    
     t[0] = t[1]
 
+def p_expression_text(t):
+    'expression : TEXT'
+
+    t[0] = t[1]
 def p_params(t):
     '''params :
                 | NAME COLON params
@@ -264,11 +296,15 @@ parser = yacc.yacc()
 
 #s='1+2;x=4;x=x+1;'
 #s='print(1+2);x=4;x=x+1;'
-#s='do{ print(1+2);x=x+1;}while(2==1)'
-#s='for(i=0;i>2;i+=5){x=4;}'
-s='printString("Zda6+5z t");'
-#s='bool x = true;'
-
+#s='if(2>1){int x=4;x+=2 print(x);}'
+#s='int i=0; do{ print(1+2);i=i+1;}while(i==0)'
+#s='int i=0; while(3>i){int x=4;i+=2 print(i);}'
+#s='for(int i=0;i<4;i++){int x=4; print(i);}'
+#s='printString("Zda6+5z t");'
+s='bool x = false;print(x);'
+#s='string T ="Test DDZ"; print(T);'
+#s='int i=0;i++ print(i>2);'
+#s='int i=6;i-=4 print(i);'
 #s='zharks(x;y;z;){print(1);}'
 #with open("1.in") as file: # Use file to refer to the file object
 
