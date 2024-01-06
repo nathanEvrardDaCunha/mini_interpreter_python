@@ -5,7 +5,6 @@ reserved = {
    'do': 'DO',
    'while': 'WHILE',
    'for': 'FOR',
-   'then': 'THEN',
    'then' : 'THEN',
    'print': 'PRINT',
    'float': 'FLOAT',
@@ -13,6 +12,7 @@ reserved = {
    'bool': 'BOOL',
    'string' : 'STRING',
    'printString' : 'PRINTSTRING',
+    'void': 'VOID',
    }
 
 tokens = [
@@ -51,7 +51,6 @@ t_OR  = r'\|'
 t_EQUALS  = r'=='
 t_LOWER  = r'\<'
 t_HIGHER  = r'\>'
-t_COMMA = r','
 
 def t_TEXT(t):
     r'\"[#-~]+(\s*[#-~]*)*\"'
@@ -111,7 +110,7 @@ def evalInst(t):
             print('CALC>', names[t[1]])
         else:
             print('CALC>', evalExpr(t[1]))
-    elif t[0] == 'printString':
+    if t[0] == 'printString':
         print('CALC>', t[1])
     if t[0] == 'if':
 
@@ -130,8 +129,6 @@ def evalInst(t):
             print(evalExpr(t[2]))
             evalInst(t[4])
             evalInst(t[3])
-    if t[0] == 'def_function':
-        print('CALC>', evalExpr(t[1])) #FAIRE le StOCKAGE DU NOM, DES ARGS, ET DU BODY
     if t[0]=='assign' :
         names[t[1]]=evalExpr(t[2])
     if t[0]=='upgrade' :
@@ -139,13 +136,13 @@ def evalInst(t):
     if t[0]=='bloc' :
         evalInst(t[1])
         evalInst(t[2])
-    elif t[0] == 'def_function':
+    if t[0] == 'def_function':
         function_name = t[1]
         params = t[2]
         body = t[3]
         return_type = t[4]
         functions[function_name] = {'params': params, 'body': body, 'return_type': return_type}
-    elif t[0] == 'function_call':
+    if t[0] == 'function_call':
         function_name = t[1]
         args = t[2]
         if function_name in functions:
@@ -203,7 +200,6 @@ def p_statement_assign(t):
         if isinstance(evalExpr(t[4]), (int, float)) and (t[1] == 'int' or t[1] == 'float'):
             t[0] = ('assign', t[2], t[4])
             names[t[2]] = evalExpr(t[4])
-            names[t[2]] = evalExpr(t[4])
         elif isinstance(evalExpr(t[4]), str) and t[1] == 'string':
             t[0] = ('assign', t[2], t[4])
             names[t[2]] = evalExpr(t[4])
@@ -215,7 +211,7 @@ def p_statement_assign(t):
             print("Erreur : Type de variable incorrect (REFAIRE LERREUR POUR QUELLE RESSORTE MIEUX AVEC CALC COMME LE DEMANDE LE PROF")
     else:
         t[0] = ('assign', t[1], t[3])
-        names[1] = evalExpr(t[3])
+        names[t[1]] = evalExpr(t[3])
 def p_statement_upgrade(t):
     '''inst : NAME PLUSPLUS
             | NAME MINUSMINUS
@@ -233,13 +229,7 @@ def p_statement_upgrade(t):
 def p_statement_print(t):
     'inst : PRINT LPAREN expression RPAREN COLON'
     t[0] = ('print',t[3])
-def p_statement_names(t):
-    '''NAMES : NAMES NAME
-                | NAME '''
-    if len(t)== 3 :
-        t[0] = ('bloc',t[1], t[2])
-    else:
-        t[0] = ('bloc',t[1], 'empty')
+
 def p_statement_print_string(t):
     'inst : PRINTSTRING LPAREN TEXT RPAREN COLON'
     t[0] = ('printString',t[3])
@@ -284,7 +274,7 @@ def p_statement_def_function(t):
 
 def p_params(t):
     '''params :
-                | NAME COMMA params
+                | NAME COLON params
                 | NAME'''
     if len(t) == 2:
         t[0] = [t[1]]
@@ -301,7 +291,7 @@ def p_statement_function_call_args(t):
 def p_args(t):
     '''args :
             | expression
-            | expression COMMA args'''
+            | expression COLON args'''
     if len(t) == 2:
         t[0] = [t[1]]
     elif len(t) == 4:
@@ -352,18 +342,28 @@ def p_error(t):
 import ply.yacc as yacc
 parser = yacc.yacc()
 
-#s='1+2;x=4;x=x+1;'
-#s='print(1+2);x=4;x=x+1;'
+#s='1+2;int x=4;x=x+1;'
+#s='print(1+2);int x=4;x=x+1;'
 #s='if(2>1){int x=4;x+=2 print(x);}'
 #s='int i=0; do{ print(1+2);i=i+1;}while(i==0)'
 #s='int i=0; while(3>i){int x=4;i+=2 print(i);}'
 #s='for(int i=0;i<4;i++){int x=4; print(i);}'
 #s='printString("Zda6+5z t");'
-s='bool x = false;print(x);'
+#s='bool x = false;print(x);'
 #s='string T ="Test DDZ"; print(T);'
 #s='int i=0;i++ print(i>2);'
 #s='int i=6;i-=4 print(i);'
-#s='zharks(x;y;z;){print(1);}'
+#s='void zharks(x;y;z;){print(1);}'
+s='''
+void test(x) {
+    x++
+    print(x);
+}
+
+test(1);
+
+'''
+
 #with open("1.in") as file: # Use file to refer to the file object
 
    #s = file.read()
