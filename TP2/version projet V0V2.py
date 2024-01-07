@@ -145,10 +145,9 @@ def evalInst(t):
         return_value = t[5] if len(t) == 6 else None
         if (isinstance(evalExpr(return_value), (int, float)) and (return_type == 'int' or return_type == 'float'))\
                 or (isinstance(evalExpr(return_value), str) and return_type == 'string')\
-                or (isinstance(evalExpr(return_value), bool) and return_type == 'bool'):
+                or (isinstance(bool(evalExpr(return_value)), bool) and return_type == 'bool'):
             functions[function_name] = {'params': params, 'body': body, 'return_type': return_type, 'return_value': return_value}
         else:
-            print("Erreur : Type de retour incorrect")
             functions[function_name] = {'params': params, 'body': body, 'return_type': return_type, 'return_value': 'Erreur de type de retour'}
     if t[0] == 'function_call':
         function_name = t[1]
@@ -166,7 +165,13 @@ def evalInst(t):
     if t[0] == 'assign_function':
         variable_name = t[1]
         variable_body = t[2]
-        names[variable_name] = evalExpr(functions[variable_body[1]]['return_value'])
+        variable_type = t[3]
+        if ((variable_type == 'int' or variable_type == 'float') and isinstance(evalExpr(functions[variable_body[1]]['return_value']), (int, float)))\
+                or (variable_type == 'string' and isinstance(evalExpr(functions[variable_body[1]]['return_value']), str))\
+                or (variable_type == 'bool' and isinstance(bool(evalExpr(functions[variable_body[1]]['return_value'])), bool)):
+            names[variable_name] = evalExpr(functions[variable_body[1]]['return_value'])
+        else:
+            names[variable_name] = 'Erreur de type de retour'
     if t[0] == 'print_function':
         print('CALC>', evalExpr(functions[t[1][1]]['return_value']))
 
@@ -202,7 +207,6 @@ def p_line(t):
     else:
         t[0] = ('bloc', t[1], 'empty')
 
-#IL FAUT IMPLEMENTER lES CONDITIONS POUR AVOIR UN BOOL QUI FONCTIONNE
 def p_statement_assign(t):
     '''inst : INT NAME EQUAL expression COLON
             | STRING NAME EQUAL TEXT COLON
@@ -218,7 +222,6 @@ def p_statement_assign(t):
             t[0] = ('assign', t[2], t[4])
             names[t[2]] = evalExpr(t[4])
         elif t[1] == 'bool':
-            print("test")
             t[0] = ('assign', t[2], t[4])
             names[t[2]] = bool(evalExpr(t[4]))
         else:
@@ -275,15 +278,15 @@ def p_expression_compare(t):
 
 def p_statement_def_function(t):
     '''inst : VOID NAME LPAREN RPAREN LBRACKET linst RBRACKET
-            | INT NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
-            | FLOAT NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
-            | BOOL NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
-            | STRING NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
+            | INT NAME LPAREN RPAREN LBRACKET linst RETURN NUMBER COLON RBRACKET
+            | FLOAT NAME LPAREN RPAREN LBRACKET linst RETURN NUMBER COLON RBRACKET
+            | BOOL NAME LPAREN RPAREN LBRACKET linst RETURN BOOLEAN COLON RBRACKET
+            | STRING NAME LPAREN RPAREN LBRACKET linst RETURN TEXT COLON RBRACKET
             | VOID NAME LPAREN params RPAREN LBRACKET linst RBRACKET
-            | INT NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET
-            | FLOAT NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET
-            | BOOL NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET
-            | STRING NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET'''
+            | INT NAME LPAREN params RPAREN LBRACKET linst RETURN NUMBER COLON RBRACKET
+            | FLOAT NAME LPAREN params RPAREN LBRACKET linst RETURN NUMBER COLON RBRACKET
+            | BOOL NAME LPAREN params RPAREN LBRACKET linst RETURN BOOLEAN COLON RBRACKET
+            | STRING NAME LPAREN params RPAREN LBRACKET linst RETURN TEXT COLON RBRACKET'''
     if len(t) == 8:
         t[0] = ('def_function', t[2], [], t[6], t[1])
     elif len(t) == 9:
@@ -294,10 +297,12 @@ def p_statement_def_function(t):
         t[0] = ('def_function', t[2], t[4], t[7], t[1], t[9])
 
 def p_statement_assign_function(t):
-    '''inst : INT NAME EQUAL inst'''
+    '''inst : INT NAME EQUAL inst
+            | FLOAT NAME EQUAL inst
+            | BOOL NAME EQUAL inst
+            | STRING NAME EQUAL inst'''
 
-    print("LETS GO BABY")
-    t[0] = ('assign_function', t[2], t[4])
+    t[0] = ('assign_function', t[2], t[4], t[1])
 
 def p_params(t):
     '''params :   NAME COLON params
@@ -374,16 +379,16 @@ parser = yacc.yacc()
 #s='int i=6;i-=4 print(i);'
 #s='void zharks(x;y;z;){print(1);}'
 
-#Si la fonction est une bool cela fonctionne aussi => A corriger
+#int result = test_function(True);
 s='''
 float test_function(x) {
     x = 20;
     x = x + 100;
-    return x;
+    return "gay";
 }
 
-int result = test_function(True);
-print(test_function(10););
+float result = test_function(10);
+print(result);
 '''
 
 #with open("1.in") as file: # Use file to refer to the file object
