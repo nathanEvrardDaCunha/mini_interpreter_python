@@ -143,7 +143,13 @@ def evalInst(t):
         body = t[3]
         return_type = t[4]
         return_value = t[5] if len(t) == 6 else None
-        functions[function_name] = {'params': params, 'body': body, 'return_type': return_type, 'return_value': return_value}
+        if (isinstance(evalExpr(return_value), (int, float)) and (return_type == 'int' or return_type == 'float'))\
+                or (isinstance(evalExpr(return_value), str) and return_type == 'string')\
+                or (isinstance(evalExpr(return_value), bool) and return_type == 'bool'):
+            functions[function_name] = {'params': params, 'body': body, 'return_type': return_type, 'return_value': return_value}
+        else:
+            print("Erreur : Type de retour incorrect")
+            functions[function_name] = {'params': params, 'body': body, 'return_type': return_type, 'return_value': 'Erreur de type de retour'}
     if t[0] == 'function_call':
         function_name = t[1]
         args = t[2]
@@ -153,7 +159,6 @@ def evalInst(t):
                 local_names = dict(zip(function_def['params'], args))
                 names.update(local_names)
                 evalInst(('bloc',) + (function_def['body'], 'empty'))
-                print('CALC>', evalExpr(function_def['return_value']))
             else:
                 print(f"Erreur: Nombre incorrect d'arguments pour la fonction {function_name}")
         else:
@@ -162,7 +167,8 @@ def evalInst(t):
         variable_name = t[1]
         variable_body = t[2]
         names[variable_name] = evalExpr(functions[variable_body[1]]['return_value'])
-
+    if t[0] == 'print_function':
+        print('CALC>', evalExpr(functions[t[1][1]]['return_value']))
 
 def evalExpr(t):
     print('eval de ', t)
@@ -237,6 +243,10 @@ def p_statement_upgrade(t):
 def p_statement_print(t):
     'inst : PRINT LPAREN expression RPAREN COLON'
     t[0] = ('print',t[3])
+
+def p_statement_print_function(t):
+    'inst : PRINT LPAREN inst RPAREN COLON'
+    t[0] = ('print_function',t[3])
 
 def p_statement_print_string(t):
     'inst : PRINTSTRING LPAREN TEXT RPAREN COLON'
@@ -366,14 +376,14 @@ parser = yacc.yacc()
 
 #Si la fonction est une bool cela fonctionne aussi => A corriger
 s='''
-int test_function(x) {
+float test_function(x) {
     x = 20;
     x = x + 100;
     return x;
 }
 
-int result = test_function(1);
-print(result);
+int result = test_function(True);
+print(test_function(10););
 '''
 
 #with open("1.in") as file: # Use file to refer to the file object
