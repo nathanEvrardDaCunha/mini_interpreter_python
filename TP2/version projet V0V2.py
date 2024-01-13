@@ -2,6 +2,7 @@ from genereTreeGraphviz2 import printTreeGraph
 
 reserved = {
    'if': 'IF',
+   'else': 'ELSE',
    'do': 'DO',
    'while': 'WHILE',
    'for': 'FOR',
@@ -18,7 +19,7 @@ reserved = {
 tokens = [
     'NAME','NUMBER','TEXT',
     'PLUS','MINUS','TIMES','DIVIDE', 'PLUSPLUS','MINUSMINUS','BOOLEAN',
-    'LPAREN','RPAREN', 'COLON', 'AND', 'OR', 'EQUAL', 'EQUALS', 'LOWER','HIGHER',
+    'LPAREN','RPAREN', 'COLON','COMMA', 'AND', 'OR', 'EQUAL', 'EQUALS', 'LOWER','HIGHER','LOWEREQUAL','HIGHEREQUAL',
     'LBRACKET','RBRACKET','DOUBLEQUOTE'
     ]+list(reserved.values())
 
@@ -46,11 +47,14 @@ t_RPAREN  = r'\)'
 t_LBRACKET  = r'\{'
 t_RBRACKET  = r'\}'
 t_COLON = r';'
+t_COMMA = r','
 t_AND  = r'\&'
 t_OR  = r'\|'
 t_EQUALS  = r'=='
 t_LOWER  = r'\<'
 t_HIGHER  = r'\>'
+t_LOWEREQUAL  = r'\<='
+t_HIGHEREQUAL  = r'\>='
 
 def t_TEXT(t):
     r'\"[#-~]+(\s*[#-~]*)*\"'
@@ -112,9 +116,17 @@ def evalInst(t):
             print('CALC>', evalExpr(t[1]))
     if t[0] == 'printString':
         print('CALC>', t[1])
+    if t[0] == 'else':
+        evalInst(t[1])
     if t[0] == 'if':
-        if(evalExpr(t[1])):
-            evalInst(t[2])
+        if t[3]!=None:
+            if(evalExpr(t[1])):
+                evalInst(t[2])
+            else:
+                evalInst(t[3])
+        else:
+            if (evalExpr(t[1])):
+                evalInst(t[2])
     if t[0] == 'while':
         while(evalExpr(t[1])):
             evalInst(t[2])
@@ -176,6 +188,8 @@ def evalExpr(t):
         if t[0] == '==': return evalExpr(t[1]) == evalExpr(t[2])
         if t[0] == '>': return evalExpr(t[1]) > evalExpr(t[2])
         if t[0] == '<': return evalExpr(t[1]) < evalExpr(t[2])
+        if t[0] == '>=': return evalExpr(t[1]) >= evalExpr(t[2])
+        if t[0] == '<=': return evalExpr(t[1]) <= evalExpr(t[2])
 
 
 print()
@@ -212,6 +226,45 @@ def p_statement_assign(t):
     else:
         t[0] = ('assign', t[1], t[3])
         names[t[1]] = evalExpr(t[3])
+
+
+def p_names(t):
+    '''NAMES : NAME COMMA NAMES
+            | NAME '''
+    if len(t) == 2:
+        t[0] = [t[1]]
+    elif len(t) == 4:
+        t[0] = [t[1]] + t[3]
+
+
+def p_expressions(t):
+    '''EXPRESSIONS : expression COMMA EXPRESSIONS
+            | expression '''
+    if len(t) == 2:
+        t[0] = [t[1]]
+    elif len(t) == 4:
+        t[0] = [t[1]] + t[3]
+
+
+
+
+
+def p_statement_assign_multiple(t):
+    '''inst : NAMES EQUAL EXPRESSIONS COLON
+            | NAMES EQUAL expression COLON '''
+
+    # t[0] = ('assign', t[1 + 2 * x], t[(len(t) - 1) - 2 * x])
+    if type(t[3]) != int and len(t[1]) == len(t[3]):
+        t[0] = ('multi_assign', t[1], t[3])
+        for i in range(len(t[1])):
+            names[t[1][i]] = evalExpr(t[3][i])
+    elif type(t[3]) == int:
+        t[0] = ('multi_assign', t[1], t[3])
+        for i in range(len(t[1])):
+            names[t[1][i]] = evalExpr(t[3])
+
+
+
 def p_statement_upgrade(t):
     '''inst : NAME PLUSPLUS
             | NAME MINUSMINUS
@@ -231,11 +284,16 @@ def p_statement_print(t):
     t[0] = ('print',t[3])
 
 def p_statement_print_string(t):
-    'inst : PRINTSTRING LPAREN TEXT RPAREN COLON'
+    '''inst : PRINTSTRING LPAREN TEXT RPAREN COLON
+            | PRINTSTRING LPAREN NAME RPAREN COLON'''
     t[0] = ('printString',t[3])
 def p_statement_if(t):
     'inst : IF LPAREN expression RPAREN LBRACKET linst RBRACKET'
     t[0] = ('if', t[3], t[6])
+
+def p_statement_if_else(t):
+    'inst : IF LPAREN expression RPAREN LBRACKET linst RBRACKET ELSE LBRACKET linst RBRACKET'
+    t[0] = ('if', t[3], t[6], ('else', t[10]))
 
 def p_statement_while(t):
     'inst : WHILE LPAREN expression RPAREN LBRACKET linst RBRACKET'
@@ -307,6 +365,8 @@ def p_expression_binop(t):
                   | expression EQUALS expression
                   | expression LOWER expression
                   | expression HIGHER expression
+                  | expression LOWEREQUAL expression
+                  | expression HIGHEREQUAL expression
                   | expression DIVIDE expression'''
     t[0] = (t[2],t[1], t[3])
 
@@ -345,19 +405,10 @@ parser = yacc.yacc()
 #s='string T ="Test DDZ"; print(T);'
 #s='int i=0;i++ print(i>2);'
 #s='int i=6;i-=4 print(i);'
-#s='void zharks(x;y;z;){print(1);}'
-s='''
-void test(x) {
-if(x>2){
-    x++
-    print(x>2);
-    }
-}
-
-test(3);
-
-'''
-
+#s='void zharks(x;y;z){print(1);}'
+s='i,d,c=2; print(i); print(c); print(d);'
+#s='i=2 print(i);'
+#s='if(2<1){int x=4;x+=2 print(x);}else{print(15);}'
 #with open("1.in") as file: # Use file to refer to the file object
 
    #s = file.read()
