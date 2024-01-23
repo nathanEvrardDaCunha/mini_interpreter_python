@@ -172,6 +172,7 @@ def evalInst(t):
         variable_name = t[1]
         variable_body = t[2]
         variable_type = t[3]
+        print(functions[variable_body[1]]['return_value'])
         if ((variable_type == 'int' or variable_type == 'float') and isinstance(evalExpr(functions[variable_body[1]]['return_value']), (int, float)))\
                 or (variable_type == 'string' and isinstance(evalExpr(functions[variable_body[1]]['return_value']), str))\
                 or (variable_type == 'bool' and isinstance(bool(evalExpr(functions[variable_body[1]]['return_value'])), bool)):
@@ -302,14 +303,16 @@ def p_expression_compare(t):
 
 def p_statement_def_function(t):
     '''inst : VOID NAME LPAREN RPAREN LBRACKET linst RBRACKET
-            | INT NAME LPAREN RPAREN LBRACKET linst RETURN NUMBER COLON RBRACKET
-            | FLOAT NAME LPAREN RPAREN LBRACKET linst RETURN NUMBER COLON RBRACKET
+            | INT NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
+            | FLOAT NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
             | BOOL NAME LPAREN RPAREN LBRACKET linst RETURN BOOLEAN COLON RBRACKET
+            | BOOL NAME LPAREN RPAREN LBRACKET linst RETURN compare COLON RBRACKET
             | STRING NAME LPAREN RPAREN LBRACKET linst RETURN TEXT COLON RBRACKET
             | VOID NAME LPAREN params RPAREN LBRACKET linst RBRACKET
-            | INT NAME LPAREN params RPAREN LBRACKET linst RETURN NUMBER COLON RBRACKET
-            | FLOAT NAME LPAREN params RPAREN LBRACKET linst RETURN NUMBER COLON RBRACKET
+            | INT NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET
+            | FLOAT NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET
             | BOOL NAME LPAREN params RPAREN LBRACKET linst RETURN BOOLEAN COLON RBRACKET
+            | BOOL NAME LPAREN params RPAREN LBRACKET linst RETURN compare COLON RBRACKET
             | STRING NAME LPAREN params RPAREN LBRACKET linst RETURN TEXT COLON RBRACKET'''
     if len(t) == 8:
         t[0] = ('def_function', t[2], [], t[6], t[1])
@@ -404,7 +407,16 @@ parser = yacc.yacc()
 #s='void zharks(x;y;z;){print(1);}'
 s='list azer=[2,3,4,"text"]; print(azer);'
 #int result = test_function(True);
+s='''
+bool test_function(x) {
+    x = 20;
+    x = x + 100;
+    return x > 10;
+}
 
+bool result = test_function(10);
+print(result);
+'''
 
 #with open("1.in") as file: # Use file to refer to the file object
 
