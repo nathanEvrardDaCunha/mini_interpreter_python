@@ -123,7 +123,7 @@ def evalInst(t):
     if t[0] == 'else':
         evalInst(t[1])
     if t[0] == 'if':
-        if t[3]!=None:
+        if len(t)>4:
             if(evalExpr(t[1])):
                 evalInst(t[2])
             else:
@@ -465,12 +465,11 @@ parser = yacc.yacc()
 #s='int i=0;i++ print(i>2);'
 #s='int i=6;i-=4 print(i);'
 #s='void zharks(x;y;z;){print(1);}'
-s='list azer=[2,3,4,"text"]; print(azer);'
+#s='list azer=[2,3,4,"text"]; print(azer);'
 #int result = test_function(True);
 s='''
 void test(x) {
 if(x>2){
-    x++
     print(x>2);
     }
 }
