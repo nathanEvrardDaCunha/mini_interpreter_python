@@ -11,6 +11,7 @@ reserved = {
    'int': 'INT',
    'bool': 'BOOL',
    'string' : 'STRING',
+   'list' : 'LIST',
    'printString' : 'PRINTSTRING',
     'void': 'VOID',
     'return': 'RETURN',
@@ -20,7 +21,7 @@ tokens = [
     'NAME','NUMBER','TEXT',
     'PLUS','MINUS','TIMES','DIVIDE', 'PLUSPLUS','MINUSMINUS','BOOLEAN',
     'LPAREN','RPAREN', 'COLON', 'AND', 'OR', 'EQUAL', 'EQUALS', 'LOWER','HIGHER',
-    'LBRACKET','RBRACKET','DOUBLEQUOTE'
+    'LBRACKET','RBRACKET','DOUBLEQUOTE','LBRACES','RBRACES','COMMA'
     ]+list(reserved.values())
 
 # Tokens
@@ -47,11 +48,14 @@ t_RPAREN  = r'\)'
 t_LBRACKET  = r'\{'
 t_RBRACKET  = r'\}'
 t_COLON = r';'
+t_COMMA = r','
 t_AND  = r'\&'
 t_OR  = r'\|'
 t_EQUALS  = r'=='
 t_LOWER  = r'\<'
 t_HIGHER  = r'\>'
+t_LBRACES=r'\['
+t_RBRACES=r'\]'
 
 def t_TEXT(t):
     r'\"[#-~]+(\s*[#-~]*)*\"'
@@ -132,6 +136,8 @@ def evalInst(t):
             evalInst(t[3])
     if t[0]=='assign' :
         names[t[1]]=evalExpr(t[2])
+    if t[0] == 'assign_list':
+        names[t[1]] = [t[2]]
     if t[0]=='upgrade' :
         names[t[1]]=evalExpr(t[2])
     if t[0]=='bloc' :
@@ -183,6 +189,7 @@ def evalExpr(t):
     if type(t) == int: return t
     if type(t) == str: return t
     if type(t) == bool : return t
+    if type(t) == list : return t
     if type(t) == float : return t
     if type(t) == tuple:
         if t[0] == '+': return evalExpr(t[1]) + evalExpr(t[2])
@@ -229,6 +236,23 @@ def p_statement_assign(t):
     else:
         t[0] = ('assign', t[1], t[3])
         names[t[1]] = evalExpr(t[3])
+def p_content(t):
+    '''content :   content COMMA content
+                | LBRACES content RBRACES COMMA LBRACES content RBRACES
+                | NAME
+                | TEXT
+                | expression'''
+
+    if len(t) == 2:
+        t[0] = [t[1]]
+    elif len(t) == 4:
+        t[0] = t[1],t[3]
+    else:
+        t[0] = []
+def p_statement_assign_list(t):
+    '''inst : LIST NAME EQUAL LBRACES content RBRACES COLON'''
+    t[0] = ('assign_list', t[2], [t[5]])
+
 def p_statement_upgrade(t):
     '''inst : NAME PLUSPLUS
             | NAME MINUSMINUS
@@ -378,18 +402,9 @@ parser = yacc.yacc()
 #s='int i=0;i++ print(i>2);'
 #s='int i=6;i-=4 print(i);'
 #s='void zharks(x;y;z;){print(1);}'
-
+s='list azer=[2,3,4,"text"]; print(azer);'
 #int result = test_function(True);
-s='''
-float test_function(x) {
-    x = 20;
-    x = x + 100;
-    return "gay";
-}
 
-float result = test_function(10);
-print(result);
-'''
 
 #with open("1.in") as file: # Use file to refer to the file object
 
