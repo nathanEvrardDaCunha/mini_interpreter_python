@@ -12,6 +12,7 @@ reserved = {
    'int': 'INT',
    'bool': 'BOOL',
    'string' : 'STRING',
+   'list' : 'LIST',
    'printString' : 'PRINTSTRING',
     'void': 'VOID',
     'return': 'RETURN',
@@ -20,8 +21,8 @@ reserved = {
 tokens = [
     'NAME','NUMBER','TEXT',
     'PLUS','MINUS','TIMES','DIVIDE', 'PLUSPLUS','MINUSMINUS','BOOLEAN',
-    'LPAREN','RPAREN', 'COLON','COMMA', 'AND', 'OR', 'EQUAL', 'EQUALS', 'LOWER','HIGHER','LOWEREQUAL','HIGHEREQUAL',
-    'LBRACKET','RBRACKET','DOUBLEQUOTE'
+    'LPAREN','RPAREN', 'COLON', 'AND', 'OR', 'EQUAL', 'EQUALS', 'LOWER','HIGHER','LOWEREQUAL','HIGHEREQUAL',
+    'LBRACKET','RBRACKET','DOUBLEQUOTE','LBRACES','RBRACES','COMMA'
     ]+list(reserved.values())
 
 # Tokens
@@ -54,6 +55,8 @@ t_OR  = r'\|'
 t_EQUALS  = r'=='
 t_LOWER  = r'\<'
 t_HIGHER  = r'\>'
+t_LBRACES=r'\['
+t_RBRACES=r'\]'
 t_LOWEREQUAL  = r'\<='
 t_HIGHEREQUAL  = r'\>='
 
@@ -144,6 +147,8 @@ def evalInst(t):
             evalInst(t[3])
     if t[0]=='assign' :
         names[t[1]]=evalExpr(t[2])
+    if t[0] == 'assign_list':
+        names[t[1]] = [t[2]]
     if t[0]=='upgrade' :
         names[t[1]]=evalExpr(t[2])
     if t[0]=='bloc' :
@@ -178,6 +183,7 @@ def evalInst(t):
         variable_name = t[1]
         variable_body = t[2]
         variable_type = t[3]
+        print(functions[variable_body[1]]['return_value'])
         if ((variable_type == 'int' or variable_type == 'float') and isinstance(evalExpr(functions[variable_body[1]]['return_value']), (int, float)))\
                 or (variable_type == 'string' and isinstance(evalExpr(functions[variable_body[1]]['return_value']), str))\
                 or (variable_type == 'bool' and isinstance(bool(evalExpr(functions[variable_body[1]]['return_value'])), bool)):
@@ -195,6 +201,7 @@ def evalExpr(t):
     if type(t) == int: return t
     if type(t) == str: return t
     if type(t) == bool : return t
+    if type(t) == list : return t
     if type(t) == float : return t
     if type(t) == tuple:
         if t[0] == '+': return evalExpr(t[1]) + evalExpr(t[2])
@@ -244,6 +251,23 @@ def p_statement_assign(t):
     else:
         t[0] = ('assign', t[1], t[3])
         names[t[1]] = evalExpr(t[3])
+def p_content(t):
+    '''content :   content COMMA content
+                | LBRACES content RBRACES COMMA LBRACES content RBRACES
+                | NAME
+                | TEXT
+                | expression'''
+
+    if len(t) == 2:
+        t[0] = [t[1]]
+    elif len(t) == 4:
+        t[0] = t[1],t[3]
+    else:
+        t[0] = []
+def p_statement_assign_list(t):
+    '''inst : LIST NAME EQUAL LBRACES content RBRACES COLON'''
+    t[0] = ('assign_list', t[2], [t[5]])
+
 
 
 def p_names(t):
@@ -340,11 +364,13 @@ def p_statement_def_function(t):
             | INT NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
             | FLOAT NAME LPAREN RPAREN LBRACKET linst RETURN expression COLON RBRACKET
             | BOOL NAME LPAREN RPAREN LBRACKET linst RETURN BOOLEAN COLON RBRACKET
+            | BOOL NAME LPAREN RPAREN LBRACKET linst RETURN compare COLON RBRACKET
             | STRING NAME LPAREN RPAREN LBRACKET linst RETURN TEXT COLON RBRACKET
             | VOID NAME LPAREN params RPAREN LBRACKET linst RBRACKET
             | INT NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET
             | FLOAT NAME LPAREN params RPAREN LBRACKET linst RETURN expression COLON RBRACKET
             | BOOL NAME LPAREN params RPAREN LBRACKET linst RETURN BOOLEAN COLON RBRACKET
+            | BOOL NAME LPAREN params RPAREN LBRACKET linst RETURN compare COLON RBRACKET
             | STRING NAME LPAREN params RPAREN LBRACKET linst RETURN TEXT COLON RBRACKET'''
     if len(t) == 8:
         t[0] = ('def_function', t[2], [], t[6], t[1])
@@ -438,21 +464,21 @@ parser = yacc.yacc()
 #s='string T ="Test DDZ"; print(T);'
 #s='int i=0;i++ print(i>2);'
 #s='int i=6;i-=4 print(i);'
-#s='void zharks(x;y;z){print(1);}'
-#s='i,d,c=2; print(i); print(c); print(d);'
-#s='i=2 print(i);'
-#s='if(2<1){int x=4;x+=2 print(x);}else{print(15);}'
+#s='void zharks(x;y;z;){print(1);}'
+s='list azer=[2,3,4,"text"]; print(azer);'
 #int result = test_function(True);
 s='''
-float test_function(x) {
-    x = 20;
-    x = x + 100;
-    return x;
+void test(x) {
+if(x>2){
+    x++
+    print(x>2);
+    }
 }
 
-float result = test_function(10);
-print(result);
+test(3);
+
 '''
+
 #with open("1.in") as file: # Use file to refer to the file object
 
    #s = file.read()
