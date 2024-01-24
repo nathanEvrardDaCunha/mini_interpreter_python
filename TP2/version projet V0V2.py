@@ -151,8 +151,8 @@ def evalInst(t):
             evalInst(t[3])
     if t[0]=='assign' :
         print("name2:")
-        names[t[1]]=evalExpr(t[2])
 
+        namefunction[t[1]] = evalExpr(t[2])
     if t[0] == 'assign_list':
         names[t[1]] = t[2]
     if t[0]=='upgrade' :
@@ -177,6 +177,8 @@ def evalInst(t):
     if t[0] == 'function_call':
         function_name = t[1]
         args = t[2]
+        print("cahfzd:")
+        print(names)
         if function_name in functions:
             function_def = functions[function_name]
             if len(args) == len(function_def['params']):
@@ -270,6 +272,7 @@ def evalInstFunction(t):
     if t[0] == 'function_call':
         function_name = t[1]
         args = t[2]
+
         if function_name in functions:
             function_def = functions[function_name]
             if len(args) == len(function_def['params']):
@@ -341,11 +344,16 @@ def p_statement_assign(t):
 
     if t[1] in ['int', 'float', 'string', 'bool']:
         if isinstance(evalExpr(t[4]), (int, float)) and (t[1] == 'int' or t[1] == 'float'):
+
             t[0] = ('assign', t[2], t[4])
+            names[t[2]] = evalExpr(t[4])
         elif isinstance(evalExpr(t[4]), str) and t[1] == 'string':
+
             t[0] = ('assign', t[2], t[4])
+            names[t[2]] = evalExpr(t[4])
         elif t[1] == 'bool':
             t[0] = ('assign', t[2], t[4])
+            names[t[2]] = evalExpr(t[4])
         else:
             print("Erreur : Type de variable incorrect (REFAIRE LERREUR POUR QUELLE RESSORTE MIEUX AVEC CALC COMME LE DEMANDE LE PROF")
     else:
@@ -586,18 +594,20 @@ parser = yacc.yacc()
 #s='int i=0;i++ print(i>2);'
 #s='int i=6;i-=4 print(i);'
 s='''
-int i=2;
-void talal(x){
+int  talal(x){
     if(x>3){
     x=x-1;
     print(x);
-    talal(x);
+    int a=x;
+    talal(a);
+    
     }
 
-    
+ return x;   
 }
+int i=6;
+talal(i-2);
 
-talal(6);
 
 '''
 #s='list azer=[2,"fefg",[4]]; print(azer[1]);'
