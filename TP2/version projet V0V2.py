@@ -112,6 +112,7 @@ def evalInst(t):
         return
 
     if t[0] == 'print':
+        print(t[1])
         if isinstance(t[1], tuple):
             print('CALC>', evalExpr(t[1]))
         elif t[1] in names:
@@ -148,7 +149,7 @@ def evalInst(t):
     if t[0]=='assign' :
         names[t[1]]=evalExpr(t[2])
     if t[0] == 'assign_list':
-        names[t[1]] = [t[2]]
+        names[t[1]] = t[2]
     if t[0]=='upgrade' :
         names[t[1]]=evalExpr(t[2])
     if t[0]=='bloc' :
@@ -259,16 +260,31 @@ def p_content(t):
                 | expression'''
 
     if len(t) == 2:
-        t[0] = [t[1]]
+        t[0] = t[1]
     elif len(t) == 4:
-        t[0] = t[1],t[3]
+        t[0] = []
+        t[0].append(t[1])
+        t[0].append(t[3])
     else:
         t[0] = []
 def p_statement_assign_list(t):
-    '''inst : LIST NAME EQUAL LBRACES content RBRACES COLON'''
+    '''inst : LIST NAME EQUAL LBRACES EXPRESSIONLIST RBRACES COLON'''
     t[0] = ('assign_list', t[2], [t[5]])
+    names[t[2]]=[t[5]]
 
-
+def p_expressions_list(t):
+    '''EXPRESSIONLIST : expression COMMA EXPRESSIONLIST
+            | LBRACES expression COMMA EXPRESSIONLIST RBRACES
+            | LBRACES expression RBRACES
+            | expression'''
+    if len(t) == 2:
+        t[0] = [t[1]]
+    elif len(t) == 4 and t[1]=='[':
+        t[0] = [[t[2]]]
+    elif len(t) == 4:
+        t[0] = [t[1]] + t[3]
+    elif len(t) == 6:
+        t[0] = [[t[2]] + t[4]]
 
 def p_names(t):
     '''NAMES : NAME COMMA NAMES
@@ -408,10 +424,14 @@ def p_args(t):
     '''args :
             | expression
             | expression COLON args'''
-    if len(t) == 2:
+    if len(t) == 2 and t[1] in names:
         t[0] = [t[1]]
-    elif len(t) == 4:
+    elif len(t) == 2 :
+        t[0] = [evalExpr(t[1])]
+    elif len(t) == 4 and t[1] in names:
         t[0] = [t[1]] + t[3]
+    elif len(t) == 4 :
+        t[0] = [evalExpr(t[1])] + t[3]
     else:
         t[0] = []
 
@@ -436,6 +456,9 @@ def p_expression_group(t):
 def p_expression_number(t):
     'expression : NUMBER'
     t[0] = t[1]
+def p_expression_list(t):
+    'expression : expression LBRACES NUMBER RBRACES'
+    t[0] = names[t[1]][0][t[3]]
 
 def p_expression_name(t):
     'expression : NAME'
@@ -458,25 +481,21 @@ parser = yacc.yacc()
 #s='if(2>1){int x=4;x+=2 print(x);}'
 #s='int i=0; do{ print(1+2);i=i+1;}while(i==0)'
 #s='int i=0; while(3>i){int x=4;i+=2 print(i);}'
-#s='for(int i=0;i<4;i++){int x=4; print(i);}'
+#s='for(int i=0;i<4;i++){int x=4; if(i>2){print(i);}}'
 #s='printString("Zda6+5z t");'
 #s='bool x = false;print(x);'
 #s='string T ="Test DDZ"; print(T);'
 #s='int i=0;i++ print(i>2);'
 #s='int i=6;i-=4 print(i);'
-#s='void zharks(x;y;z;){print(1);}'
-#s='list azer=[2,3,4,"text"]; print(azer);'
-#int result = test_function(True);
 s='''
-void test(x) {
-if(x>2){
-    print(x>2);
-    }
-}
+void zharks(x){
+    print(x);
+} 
 
-test(3);
+zharks(2);'''
+#s='list azer=[2,"fefg",[4]]; print(azer[1]);'
+#int result = test_function(True);
 
-'''
 
 #with open("1.in") as file: # Use file to refer to the file object
 
