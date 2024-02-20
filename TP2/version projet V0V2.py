@@ -107,7 +107,6 @@ namefunction = {}
 functions = {}
 
 def evalInst(t):
-    print(names)
     print('evalInst', t)
 
     if type(t) != tuple:
@@ -115,7 +114,7 @@ def evalInst(t):
         return
 
     if t[0] == 'print':
-        print(t[1])
+        print(names)
         if isinstance(t[1], tuple):
             print('CALC>', evalExpr(t[1]))
         elif t[1] in names:
@@ -181,7 +180,7 @@ def evalInst(t):
             function_def = functions[function_name]
             if len(args) == len(function_def['params']):
                 local_names = dict(zip(function_def['params'], args))
-                names.update(local_names)
+                namefunction.update(local_names)
                 evalInstFunction(('bloc',) + (function_def['body'], 'empty'))
             else:
                 print(f"Erreur: Nombre incorrect d'arguments pour la fonction {function_name}")
@@ -202,54 +201,53 @@ def evalInst(t):
         print('CALC>', evalExpr(functions[t[1][1]]['return_value']))
 def evalInstFunction(t):
     print('evalInst', t)
-
     if type(t) != tuple:
         print('warning')
         return
 
     if t[0] == 'print':
-        print(namefunction)
         if isinstance(t[1], tuple):
-            print('CALC>', evalExpr(t[1]))
+            print('CALC>', evalExprFunction(t[1]))
         elif t[1] in namefunction:
             print('CALC>', namefunction[t[1]])
         else:
-            print('CALC>', evalExpr(t[1]))
+            print('CALC>', evalExprFunction(t[1]))
     if t[0] == 'printString':
         print('CALC>', t[1])
     if t[0] == 'else':
         evalInst(t[1])
     if t[0] == 'if':
         if len(t)>4:
-            if(evalExpr(t[1])):
+            if(evalExprFunction(t[1])):
                 evalInstFunction(t[2])
             else:
                 evalInstFunction(t[3])
         else:
-            if (evalExpr(t[1])):
+            if (evalExprFunction(t[1])):
                 evalInstFunction(t[2])
     if t[0] == 'while':
-        while(evalExpr(t[1])):
+        while(evalExprFunction(t[1])):
             evalInst(t[2])
     if t[0] == 'do_while':
         evalInst(t[1])
-        while(evalExpr(t[2])):
+        while(evalExprFunction(t[2])):
             evalInst(t[1])
     if t[0] == 'for':
         evalInst(t[1])
 
-        while (evalExpr(t[2])):
-            print(evalExpr(t[2]))
+        while (evalExprFunction(t[2])):
+            print(evalExprFunction(t[2]))
             evalInst(t[4])
             evalInst(t[3])
     if t[0]=='assign' :
         print("name2:")
-        namefunction[t[1]]=evalExpr(t[2])
-
+        print(namefunction)
+        namefunction[t[1]]=evalExprFunction(t[2])
+        print(namefunction)
     if t[0] == 'assign_list':
         namefunction[t[1]] = t[2]
     if t[0]=='upgrade' :
-        namefunction[t[1]]=evalExpr(t[2])
+        namefunction[t[1]]=evalExprFunction(t[2])
 
     if t[0]=='bloc' :
         evalInstFunction(t[1])
@@ -260,9 +258,9 @@ def evalInstFunction(t):
         body = t[3]
         return_type = t[4]
         return_value = t[5] if len(t) == 6 else None
-        if (isinstance(evalExpr(return_value), (int, float)) and (return_type == 'int' or return_type == 'float'))\
-                or (isinstance(evalExpr(return_value), str) and return_type == 'string')\
-                or (isinstance(bool(evalExpr(return_value)), bool) and return_type == 'bool'):
+        if (isinstance(evalExprFunction(return_value), (int, float)) and (return_type == 'int' or return_type == 'float'))\
+                or (isinstance(evalExprFunction(return_value), str) and return_type == 'string')\
+                or (isinstance(bool(evalExprFunction(return_value)), bool) and return_type == 'bool'):
             functions[function_name] = {'params': params, 'body': body, 'return_type': return_type, 'return_value': return_value}
         else:
             functions[function_name] = {'params': params, 'body': body, 'return_type': return_type, 'return_value': 'Erreur de type de retour'}
@@ -274,7 +272,7 @@ def evalInstFunction(t):
             function_def = functions[function_name]
             if len(args) == len(function_def['params']):
                 local_names = dict(zip(function_def['params'], args))
-                names.update(local_names)
+                namefunction.update(local_names)
                 evalInstFunction(('bloc',) + (function_def['body'], 'empty'))
             else:
                 print(f"Erreur: Nombre incorrect d'arguments pour la fonction {function_name}")
@@ -285,21 +283,20 @@ def evalInstFunction(t):
         variable_body = t[2]
         variable_type = t[3]
         print(functions[variable_body[1]]['return_value'])
-        if ((variable_type == 'int' or variable_type == 'float') and isinstance(evalExpr(functions[variable_body[1]]['return_value']), (int, float)))\
-                or (variable_type == 'string' and isinstance(evalExpr(functions[variable_body[1]]['return_value']), str))\
-                or (variable_type == 'bool' and isinstance(bool(evalExpr(functions[variable_body[1]]['return_value'])), bool)):
-            namefunction[variable_name] = evalExpr(functions[variable_body[1]]['return_value'])
+        if ((variable_type == 'int' or variable_type == 'float') and isinstance(evalExprFunction(functions[variable_body[1]]['return_value']), (int, float)))\
+                or (variable_type == 'string' and isinstance(evalExprFunction(functions[variable_body[1]]['return_value']), str))\
+                or (variable_type == 'bool' and isinstance(bool(evalExprFunction(functions[variable_body[1]]['return_value'])), bool)):
+            namefunction[variable_name] = evalExprFunction(functions[variable_body[1]]['return_value'])
+
         else:
             namefunction[variable_name] = 'Erreur de type de retour'
     if t[0] == 'print_function':
-        print('CALC>', evalExpr(functions[t[1][1]]['return_value']))
+        print('CALC>', evalExprFunction(functions[t[1][1]]['return_value']))
 
 def evalExpr(t):
-    print(namefunction)
     print('eval de ', t)
     if t in functions:
         return functions[t]
-    if t in namefunction: return namefunction[t]
     if t in names: return names[t]
     if type(t) == int: return t
     if type(t) == str: return t
@@ -322,7 +319,34 @@ def evalExpr(t):
 
 
 print()
+def evalExprFunction(t):
+    print(namefunction)
+    print('eval de ', t)
+    if t in functions:
+        return functions[t]
+    if t in namefunction: return namefunction[t]
+    if t in names: return names[t]
+    if type(t) == int: return t
+    if type(t) == str: return t
+    if type(t) == bool : return t
+    if type(t) == list : return t
+    if type(t) == float : return t
+    if type(t) == tuple:
+        if t[0] == '+': return evalExprFunction(t[1]) + evalExprFunction(t[2])
+        if t[0] == '-': return evalExprFunction(t[1]) - evalExprFunction(t[2])
+        if t[0] == '*': return evalExprFunction(t[1]) * evalExprFunction(t[2])
+        if t[0] == '/': return evalExprFunction(t[1]) // evalExprFunction(t[2])
+        if t[0] == '%': return evalExprFunction(t[1]) % evalExprFunction(t[2])
+        if t[0] == '++': return evalExprFunction(t[1]) + 1
+        if t[0] == '--': return evalExprFunction(t[1]) - 1
+        if t[0] == '==': return evalExprFunction(t[1]) == evalExprFunction(t[2])
+        if t[0] == '>': return evalExprFunction(t[1]) > evalExprFunction(t[2])
+        if t[0] == '<': return evalExprFunction(t[1]) < evalExprFunction(t[2])
+        if t[0] == '>=': return evalExprFunction(t[1]) >= evalExprFunction(t[2])
+        if t[0] == '<=': return evalExprFunction(t[1]) <= evalExprFunction(t[2])
 
+
+print()
 def p_line(t):
     '''linst : linst inst
             | inst '''
@@ -342,10 +366,13 @@ def p_statement_assign(t):
     if t[1] in ['int', 'float', 'string', 'bool']:
         if isinstance(evalExpr(t[4]), (int, float)) and (t[1] == 'int' or t[1] == 'float'):
             t[0] = ('assign', t[2], t[4])
+
         elif isinstance(evalExpr(t[4]), str) and t[1] == 'string':
             t[0] = ('assign', t[2], t[4])
+
         elif t[1] == 'bool':
             t[0] = ('assign', t[2], t[4])
+
         else:
             print("Erreur : Type de variable incorrect (REFAIRE LERREUR POUR QUELLE RESSORTE MIEUX AVEC CALC COMME LE DEMANDE LE PROF")
     else:
@@ -522,6 +549,7 @@ def p_args(t):
     '''args :
             | expression
             | expression COLON args'''
+
     if len(t) == 2 and t[1] in names:
         t[0] = [evalExpr(t[1])]
     elif len(t) == 2 :
@@ -585,22 +613,9 @@ parser = yacc.yacc()
 #s='string T ="Test DDZ"; print(T);'
 #s='int i=0;i++ print(i>2);'
 #s='int i=6;i-=4 print(i);'
-s='''
-int i=2;
-void talal(x){
-    if(x>3){
-    x=x-1;
-    print(x);
-    talal(x);
-    }
 
-    
-}
-
-talal(6);
-
-'''
-#s='list azer=[2,"fefg",[4]]; print(azer[1]);'
+#s='i,d,c=2,3,4; print(i); print(c); print(d);'
+s='list azer=[2,"fefg",[4]]; print(azer[1]);'
 #int result = test_function(True);
 
 
