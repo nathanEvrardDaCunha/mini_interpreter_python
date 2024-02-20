@@ -34,6 +34,6 @@ Avoir installé Python et la librairie graphviz
 - [x] Gérer les fonctions void
 - [x] Gérer les fonctions avec retour
 - [ ] Gérer la pile
-- [ ] Gérer les tableaux
+- [x] Gérer les tableaux
 - [ ] Gérer la POO
 - [ ] Gérer le passage des paramètres par références
